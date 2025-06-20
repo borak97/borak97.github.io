@@ -1,8 +1,8 @@
-name: .github/workflows/gpt-post.yml
+name: Daily GPT Blog Post
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # كل يوم الساعة 6 صباحاً UTC (9 صباحاً بغداد)
+    - cron: "0 6 * * *"  # كل يوم الساعة 9 صباحاً بغداد
   workflow_dispatch:
 
 jobs:
@@ -41,6 +41,5 @@ EOF
           mv post.md posts/$(date +'%Y-%m-%d').md
           git add posts/
           git commit -m "Add post for $(date +'%Y-%m-%d')" || echo "Nothing to commit"
-
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
           git push
