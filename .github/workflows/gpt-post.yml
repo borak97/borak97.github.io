@@ -2,7 +2,7 @@ name: Daily GPT Blog Post
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # كل يوم الساعة 9 صباحاً بغداد
+    - cron: "0 6 * * *"  # Every day at 6 AM UTC
   workflow_dispatch:
 
 jobs:
@@ -10,35 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Generate blog content using ChatGPT
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Generate blog post
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "Generating content..."
-          cat << 'EOF' > post.md
-# 🧠 Daily AI Blog – $(date +'%Y-%m-%d')
+          RESPONSE=$(curl -s https://api.openai.com/v1/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model": "text-davinci-003",
+              "prompt": "Write a short, inspiring blog post about motivation in less than 150 words.",
+              "max_tokens": 200
+            }')
 
-$(curl -s https://api.openai.com/v1/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -d '{
-    "model": "text-davinci-003",
-    "prompt": "Write a short, inspiring blog post about motivation in less than 150 words.",
-    "max_tokens": 200
-  }' | jq -r '.choices[0].text')
-EOF
+          TEXT=$(echo "$RESPONSE" | jq -r '.choices[0].text')
+          echo "# 🧠 Daily AI Blog – $(date +'%Y-%m-%d')" > post.md
+          echo "$TEXT" >> post.md
 
-      - name: Commit and push post
+      - name: Commit and push
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "borak97"
-          git config --global user.email "bebo.st88@gmail.com"
           mkdir -p posts
           mv post.md posts/$(date +'%Y-%m-%d').md
+          git config --global user.name "borak97"
+          git config --global user.email "bebo.st88@gmail.com"
           git add posts/
           git commit -m "Add post for $(date +'%Y-%m-%d')" || echo "Nothing to commit"
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
