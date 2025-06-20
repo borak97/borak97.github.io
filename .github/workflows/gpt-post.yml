@@ -1,4 +1,4 @@
-name: Daily GPT Blog Post
+name: .github/workflows/gpt-post.yml
 
 on:
   schedule:
