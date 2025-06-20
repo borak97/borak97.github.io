@@ -40,5 +40,5 @@ jobs:
           git config --global user.email "bebo.st88@gmail.com"
           git add posts/
           git commit -m "Add GPT post for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}
           git push origin HEAD:main
