@@ -1,0 +1,61 @@
+name: Daily AI Post
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: python-version: '3.10'
+      - run: pip install openai pyyaml
+      - name: Generate new post
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python3 << 'EOF'
+          import os, random, datetime
+          from openai import OpenAI
+
+          topics = open("keywords.txt").read().splitlines()
+          topic = random.choice([t for t in topics if t.strip()])
+
+          client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+          prompt = (
+            f"Write a 500-word English article about: \"{topic}\".\n"
+            "Include a closing paragraph that invites the reader to click the affiliate link below:\n"
+            "[AFFILIATE_LINK]"
+          )
+
+          response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content":prompt}],
+            temperature=0.7
+          )
+          content = response.choices[0].message.content.strip()
+
+          date = datetime.date.today().strftime("%Y-%m-%d")
+          slug = topic.lower().replace(" ", "-")
+          filename = f"_posts/{date}-{slug}.md"
+          affiliate = os.getenv("AFFILIATE_LINK")
+
+          os.makedirs("_posts", exist_ok=True)
+          with open(filename, "w", encoding="utf-8") as f:
+            f.write("---\n")
+            f.write(f"title: \"{topic}\"\n")
+            f.write(f"date: {date} 02:00:00 +0000\n")
+            f.write("categories: ai affiliate\n")
+            f.write("---\n\n")
+            f.write(content.replace("[AFFILIATE_LINK]", affiliate))
+          EOF
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add _posts/*.md
+          git commit -m "📝 Add daily post"
+          git push
