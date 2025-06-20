@@ -1,0 +1,44 @@
+name: Daily GPT Auto Post
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  create-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate blog post content
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          RESPONSE=$(curl -s https://api.openai.com/v1/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model": "text-davinci-003",
+              "prompt": "Write a short, inspiring blog post about daily motivation in less than 150 words.",
+              "max_tokens": 200
+            }')
+
+          echo "# Daily AI Blog - $(date +'%Y-%m-%d')" > post.md
+          echo "$RESPONSE" | jq -r '.choices[0].text' >> post.md
+
+      - name: Commit and push post
+        run: |
+          mkdir -p posts
+          mv post.md posts/$(date +'%Y-%m-%d').md
+          git config --global user.name "borak97"
+          git config --global user.email "bebo.st88@gmail.com"
+          git add posts/
+          git commit -m "Add GPT post for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push origin HEAD:main
