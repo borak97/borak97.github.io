@@ -1,0 +1,35 @@
+name: Daily GPT Blog Post v2
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # كل يوم الساعة 6 صباحاً UTC (9 صباحاً بتوقيت بغداد)
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate blog content using ChatGPT
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "Generating content..."
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model": "gpt-4o-mini",
+              "messages": [{"role": "user", "content": "Write a short, inspiring blog post about motivation in less than 150 words."}]
+            }' | jq -r '.choices[0].message.content' > post.md
+
+      - name: Commit and push post
+        run: |
+          mkdir -p posts
+          mv post.md posts/$(date +'%Y-%m-%d').md
+          git config user.name "borak97"
+          git config user.email "bebo.st88@gmail.com"
+          git add posts/
+          git commit -m "Add daily GPT post for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push origin main
