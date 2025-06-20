@@ -5,6 +5,9 @@ on:
     - cron: "0 7 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   create-post:
     runs-on: ubuntu-latest
@@ -12,6 +15,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          # نستخدم توكن شخصي لضمان صلاحيات الدفع
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -40,5 +46,4 @@ jobs:
           git config --global user.email "bebo.st88@gmail.com"
           git add posts/
           git commit -m "Add GPT post for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}
           git push origin HEAD:main
